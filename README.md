@@ -1,4 +1,5 @@
 # RiskIQ Hadoop
+[![Build Status](https://secure.travis-ci.org/RiskIQ/riskiq-hadoop.png?branch=master)](http://travis-ci.org/RiskIQ/riskiq-hadoop)
 
 A collection of Hadoop-related code that we have developed and found to be highly useful.
 
