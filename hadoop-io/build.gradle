@@ -1,0 +1,10 @@
+dependencies {
+    compile ("org.apache.hadoop:hadoop-common:${HADOOP_VERSION}") {
+        exclude group: "com.google.guava"
+    }
+    compile (group: 'org.apache.hadoop', name: 'hadoop-mapreduce-client-core', version: HADOOP_VERSION)
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'org.mockito', name: 'mockito-core', version: '3.2.4'
+    testCompile 'org.hamcrest:hamcrest:2.2'
+}

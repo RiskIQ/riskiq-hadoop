@@ -1,0 +1,153 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
+    }
+    dependencies {
+        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.21.2"
+        classpath 'net.researchgate:gradle-release:2.6.0'
+    }
+}
+
+apply plugin: "io.codearte.nexus-staging"
+if (project.hasProperty("release")) {
+    apply plugin: 'net.researchgate.release'
+}
+
+String mavenUser = project.hasProperty("ossrhUser") ? ossrhUser : "";
+String mavenPassword = project.hasProperty("ossrhPassword") ? ossrhPassword : "";
+
+allprojects {
+    apply plugin: 'java'
+}
+
+
+subprojects {
+    group 'com.riskiq.mapreduce'
+    version version
+
+    def subproject = it;
+
+    apply plugin: 'idea'
+    apply plugin: 'maven'
+    apply plugin: "signing"
+
+
+    repositories {
+        mavenCentral()
+        maven {
+            url "http://maven.restlet.com"
+        }
+    }
+
+    idea {
+        module {
+            downloadJavadoc = true
+            downloadSources = true
+        }
+    }
+
+    compileJava {
+        sourceCompatibility = JAVA_VERSION
+        targetCompatibility = JAVA_VERSION
+    }
+
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        dependsOn classes
+        classifier "sources"
+        from sourceSets.main.allSource
+        group "build"
+    }
+
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        classifier "javadoc"
+        from javadoc.destinationDir
+        group "build"
+    }
+
+    task testJar(type: Jar) {
+        classifier "tests"
+        from sourceSets.test.output
+    }
+
+    task testSourceJar(type: Jar) {
+        classifier "tests-sources"
+        from sourceSets.test.allJava
+    }
+
+    artifacts {
+        archives sourcesJar
+        archives javadocJar
+        archives testJar
+        archives testSourceJar
+    }
+
+    if (project.hasProperty("release")) {
+
+        beforeReleaseBuild.dependsOn test
+        afterReleaseBuild.dependsOn uploadArchives
+
+        signing {
+            sign configurations.archives
+        }
+
+        uploadArchives {
+            repositories {
+                mavenDeployer {
+                    beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                    repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                        authentication(userName: mavenUser, password: mavenPassword)
+                    }
+
+                    snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                        authentication(userName: mavenUser, password: mavenPassword)
+                    }
+
+                    pom.project {
+                        name project.name
+                        packaging "jar"
+                        description "Utilities for creation of Solr indexes using mapreduce"
+                        url "https://github.com/riskiq/solr-map-reduce"
+
+                        scm {
+                            connection 'scm:git:git@github.com:RiskIQ/solr-map-reduce.git'
+                            developerConnection 'scm:git:git@github.com:RiskIQ/solr-map-reduce.git'
+                            url "git@github.com:RiskIQ/solr-map-reduce.git"
+                        }
+
+                        licenses {
+                            license {
+                                name 'The Apache License, Version 2.0'
+                                url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            }
+                        }
+
+                        developers {
+                            developer {
+                                id 'jlinn'
+                                name 'Joe Linn'
+                                email 'joe.linn@riskiq.net'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    task getDeps(type: Copy) {
+        from sourceSets.main.runtimeClasspath
+        into 'runtime/'
+    }
+
+}
+
+nexusStaging {
+    username = mavenUser
+    password = mavenPassword
+    packageGroup = "com.riskiq.mapreduce"
+}
